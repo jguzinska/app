@@ -8,10 +8,7 @@ from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
-from kivy.core.window import Window
 import requests
-
-Window.size = (400, 500)
 
 
 class AirQualityApp(App):
