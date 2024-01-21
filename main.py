@@ -13,7 +13,7 @@ import requests
 
 class AirQualityApp(App):
     def build(self):
-        self.title = 'Monitoring jakości powietrza'
+        self.title = 'Air Quality Checker'
         self.root = AirQualityLayout()
         return self.root
 
@@ -64,33 +64,27 @@ class AirQualityLayout(BoxLayout):
         self.selected_station_code = None
 
         self.result_label = Label(text='')
-        self.city_input = TextInput(hint_text='Wprowadź nazwę miasta', **self.text_input_style)
-        self.station_code_label = Label(text='Nie wybrano stacji', **self.label_style)
+        self.city_input = TextInput(hint_text='Enter City Name', **self.text_input_style)
+        self.station_code_label = Label(text='Selected Station: None', **self.label_style)
 
-        header_label = Label(text='     Monitoring\njakości powietrza', font_size='24sp', color=(0.1, 0.7, 0.3, 1), )
+        header_label = Label(text='Air Quality Checker', font_size='24sp', color=(0.1, 0.7, 0.3, 1))
         self.add_widget(header_label)
         self.add_widget(self.city_input)
 
-        check_button = self.create_button('Sprawdź jakość powietrza', self.check_air_quality)
+        check_button = self.create_button('Check Air Quality', self.check_air_quality)
         self.add_widget(check_button)
 
-        self.result_label = Label(text='Jakość powietrza: ', **self.label_style)
+        self.result_label = Label(text='Air quality results: ', **self.label_style)
         self.add_widget(self.result_label)
 
         bottom_buttons_layout = GridLayout(cols=2, spacing=10, size_hint_y=None, height=100)
-        history_button = Button(text='Poziom PM10 z\nostatnich\n'
-                                     'trzech dni', on_press=self.show_historical_data, **self.main_button_style)
-        stations_button = Button(text='Pokaż stacje', on_press=self.show_stations, **self.main_button_style)
+        history_button = Button(text='Show Last 3 Days\n'
+                                     ' PM10 Levels', on_press=self.show_historical_data, **self.main_button_style)
+        stations_button = Button(text='Show Stations', on_press=self.show_stations, **self.main_button_style)
 
         bottom_buttons_layout.add_widget(history_button)
         bottom_buttons_layout.add_widget(stations_button)
         self.add_widget(bottom_buttons_layout)
-
-        self.blank_label = Label(text='')
-        self.add_widget(self.blank_label)
-
-        header_label = Label(text=' © Copyright 2023-2024 Julia Guzińska', font_size='10sp', color=(0.1, 0.7, 0.3, 1))
-        self.add_widget(header_label)
 
     def create_button(self, text, on_press_handler):
         return Button(text=text, on_press=on_press_handler, **self.convert_button_style)
@@ -99,7 +93,7 @@ class AirQualityLayout(BoxLayout):
         city_name = self.city_input.text.strip()
 
         if not city_name:
-            self.result_label.text = 'Wpisz nazwę miasta.'
+            self.result_label.text = 'Please enter a city name.'
             return
 
         try:
@@ -112,13 +106,13 @@ class AirQualityLayout(BoxLayout):
 
                 if 'stIndexLevel' in air_quality_data and 'indexLevelName' in air_quality_data['stIndexLevel']:
                     air_quality_index = air_quality_data['stIndexLevel']['indexLevelName']
-                    self.result_label.text = f'Jakość powietrza w mieście {city_name}: {air_quality_index}'
+                    self.result_label.text = f'Air quality at station {station_id} in {city_name}: {air_quality_index}'
                 else:
-                    self.result_label.text = f'Brak danych dla stacji {station_id} w mieście {city_name}.'
+                    self.result_label.text = f'No air quality data available for station {station_id} in {city_name}.'
             else:
-                self.result_label.text = f'Brak stacji w mieście {city_name}.'
+                self.result_label.text = f'No station found in {city_name}.'
         except requests.RequestException as e:
-            self.result_label.text = f'Spróbuj ponownie'
+            self.result_label.text = f'Error: {str(e)}'
 
     @staticmethod
     def get_stations_data():
@@ -136,7 +130,7 @@ class AirQualityLayout(BoxLayout):
         city_name = self.city_input.text.strip()
 
         if not city_name:
-            self.result_label.text = 'Prosze wpisać miasto.'
+            self.result_label.text = 'Please enter a city name.'
             return
 
         try:
@@ -146,13 +140,13 @@ class AirQualityLayout(BoxLayout):
                              if city_name.lower() in station['city']['name'].lower()]
 
             if not city_stations:
-                self.result_label.text = f'Brak stacji w mieście {city_name}.'
+                self.result_label.text = f'No stations found in {city_name}.'
                 return
 
             selected_station = city_stations[0]
 
             self.selected_station_code = selected_station['city']['commune']['districtName']
-            self.station_code_label.text = f'Wybrana stacja: {self.selected_station_code}'
+            self.station_code_label.text = f'Selected Station: {self.selected_station_code}'
 
             historical_data = self.get_historical_data()
             grouped_data = self.group_historical_data(historical_data)
@@ -161,7 +155,7 @@ class AirQualityLayout(BoxLayout):
             history_popup.open()
 
         except requests.RequestException:
-            self.result_label.text = 'Wystąpił błąd podczas pobierania danych, spróbuj ponownie.'
+            self.result_label.text = 'Error fetching historical data. Please try again.'
 
     @staticmethod
     def get_historical_data():
@@ -180,7 +174,7 @@ class AirQualityLayout(BoxLayout):
         return grouped_data
 
     def create_history_popup(self, grouped_data):
-        history_popup = Popup(title="Lista stacji", size_hint=(0.9, 0.5))
+        history_popup = Popup(title="Station list", size_hint=(0.9, 0.9))
         popup_scroll_view = ScrollView(size_hint=(1, 1))
         inner_box_layout = BoxLayout(orientation='vertical', spacing=5)
         popup_scroll_view.add_widget(inner_box_layout)
@@ -195,11 +189,7 @@ class AirQualityLayout(BoxLayout):
     def show_current_stations(self, instance, arg):
         history_text = ''
         for entry in instance:
-            try:
-                history_text += f"Data: {entry[0]}, PM10: {entry[1]:.2f} ug/m3\n"
-            except TypeError:
-                history_text += f"Data: {entry[0]}, PM10: Brak danych\n"
-
+            history_text += f"Date: {entry[0]}, PM10: {entry[1]:.2f} ug/m3\n"
         history_text += '\n'
 
         history_label = Label(text=history_text, **self.label_style)
@@ -211,22 +201,21 @@ class AirQualityLayout(BoxLayout):
     def show_stations(self, instance):
         try:
             stations_data = self.get_stations_data()
-            stations_list = [f"ID stacji: {station['id']}, "
-                             f"Adres: {station['stationName']}" for station in stations_data if
-                             station["city"]["name"] == self.city_input.text.strip().capitalize()]
+            stations_list = [f"Station ID: {station['id']}, "
+                             f"Address: {station['stationName']}" for station in stations_data if
+                             station["city"]["name"] == self.city_input.text.strip()]
 
-            history_text = 'Stacje:\n' + '\n'.join(stations_list)
+            history_text = 'Stations:\n' + '\n'.join(stations_list)
 
             history_label = Label(text=history_text, **self.label_style)
             history_popup_content = BoxLayout(orientation='vertical', spacing=5)
             history_popup_content.add_widget(history_label)
-            history_popup = Popup(title='Lista stacji', content=history_popup_content, size_hint=(0.9, 0.5))
+            history_popup = Popup(title='Station List', content=history_popup_content, size_hint=(0.9, 0.9))
             history_popup.open()
 
         except requests.RequestException as e:
-            self.result_label.text = f'Błąd: {str(e)}'
+            self.result_label.text = f'Error: {str(e)}'
 
 
 if __name__ == '__main__':
     AirQualityApp().run()
-
